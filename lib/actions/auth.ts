@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '../supabase/server'
+import { sendWelcomeEmail } from './email'
 
 export async function loginUser(formData: FormData) {
   const supabase = await createClient()
@@ -44,8 +45,10 @@ export async function signupUser(formData: FormData) {
     redirect('/register?error=' + encodeURIComponent(error.message))
   }
 
+  await sendWelcomeEmail(email, name)
+
   revalidatePath('/dashboard')
-  redirect('/dashboard/profile')
+  redirect('/dashboard/onboarding')
 }
 
 export async function logoutUser() {
