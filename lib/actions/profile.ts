@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { createClient } from '../supabase/server'
+import { createServiceClient } from '../supabase/service'
 
 export async function updateProfile(formData: FormData) {
   const supabase = await createClient()
@@ -49,8 +50,9 @@ export async function updateProfile(formData: FormData) {
     logo_url = publicUrl
   }
 
-  // Upsert profile data
-  const { error } = await supabase.from('cl_users').upsert({
+  // Upsert profile data — use service client to bypass RLS on server action
+  const serviceClient = createServiceClient()
+  const { error } = await serviceClient.from('cl_users').upsert({
     id: user.id,
     name,
     nif,
