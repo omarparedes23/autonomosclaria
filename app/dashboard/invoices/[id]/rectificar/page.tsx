@@ -2,9 +2,25 @@ import { getInvoice } from '@/lib/actions/invoices'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import RectificarForm from './RectificarForm'
+import { createClient } from '@/lib/supabase/server'
 
 export default async function RectificarPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data: profile } = await supabase
+    .from('cl_users')
+    .select('plan')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.plan !== 'pro') {
+    redirect('/pricing?msg=rectificativas')
+  }
+
   const invoice = await getInvoice(params.id)
 
   if (!invoice) redirect('/dashboard')

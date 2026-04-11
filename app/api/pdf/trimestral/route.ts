@@ -18,10 +18,14 @@ export async function GET(request: Request) {
 
   const [invoices, profileRes] = await Promise.all([
     getQuarterInvoices(quarter, year),
-    supabase.from('cl_users').select('name, nif, fiscal_address').eq('id', user.id).single(),
+    supabase.from('cl_users').select('plan, name, nif, fiscal_address').eq('id', user.id).single(),
   ])
 
   const profile = profileRes.data
+
+  if (profile?.plan !== 'pro') {
+    return new Response('Esta función está disponible en el plan Pro.', { status: 403 })
+  }
 
   // Compute summary
   const totalBase = invoices.reduce((acc, inv) => acc + inv.taxable_base_cents, 0)

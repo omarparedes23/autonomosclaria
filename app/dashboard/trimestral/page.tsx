@@ -2,6 +2,14 @@ import { getQuarterInvoices } from '@/lib/actions/trimestral'
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 
+async function getUserPlan() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return 'free'
+  const { data } = await supabase.from('cl_users').select('plan').eq('id', user.id).single()
+  return data?.plan ?? 'free'
+}
+
 const QUARTERS = ['Q1', 'Q2', 'Q3', 'Q4']
 const QUARTER_LABEL: Record<string, string> = {
   Q1: '1er Trimestre (Ene–Mar)',
@@ -22,6 +30,7 @@ function getCurrentQuarter() {
 export default async function TrimestralPage(props: {
   searchParams: Promise<{ quarter?: string; year?: string }>
 }) {
+  const plan = await getUserPlan()
   const sp = await props.searchParams
   const now = new Date()
   const quarter = QUARTERS.includes(sp.quarter ?? '') ? (sp.quarter as string) : getCurrentQuarter()
@@ -63,7 +72,7 @@ export default async function TrimestralPage(props: {
           >
             Ver historial
           </Link>
-          {invoices.length > 0 && (
+          {plan === 'pro' && invoices.length > 0 && (
             <a
               href={`/api/pdf/trimestral?quarter=${quarter}&year=${year}`}
               className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
@@ -73,6 +82,21 @@ export default async function TrimestralPage(props: {
           )}
         </div>
       </div>
+
+      {/* Pro upgrade banner for free users */}
+      {plan !== 'pro' && (
+        <div className="mb-6 flex items-center justify-between border border-amber-200 bg-amber-50 rounded-xl px-5 py-3.5 gap-4">
+          <p className="text-sm text-amber-800">
+            <span className="font-semibold">Plan Pro</span> — Descarga el resumen trimestral en PDF para tu Modelo 303.
+          </p>
+          <Link
+            href="/pricing"
+            className="text-xs font-semibold text-amber-700 border border-amber-300 px-3 py-1.5 rounded-full hover:bg-amber-100 transition-colors whitespace-nowrap"
+          >
+            Ver planes →
+          </Link>
+        </div>
+      )}
 
       {/* Selector */}
       <form method="GET" className="flex items-center gap-3 mb-8">

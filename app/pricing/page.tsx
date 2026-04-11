@@ -17,7 +17,14 @@ const PRO_FEATURES = [
   'Soporte prioritario',
 ]
 
-export default async function PricingPage() {
+const MSG_LABELS: Record<string, string> = {
+  rectificativas: 'Las facturas rectificativas son exclusivas del Plan Pro.',
+}
+
+export default async function PricingPage(props: { searchParams: Promise<{ msg?: string }> }) {
+  const sp = await props.searchParams
+  const msg = sp.msg ? (MSG_LABELS[sp.msg] ?? null) : null
+
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -56,6 +63,15 @@ export default async function PricingPage() {
           )}
         </div>
       </nav>
+
+      {/* Context message (e.g. redirected from a Pro-only feature) */}
+      {msg && (
+        <div className="px-6 md:px-16 pt-6">
+          <div className="max-w-3xl mx-auto border border-amber-400/30 bg-amber-400/10 rounded-xl px-5 py-3 text-sm text-amber-300">
+            {msg}
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="text-center px-6 pt-20 pb-16">
