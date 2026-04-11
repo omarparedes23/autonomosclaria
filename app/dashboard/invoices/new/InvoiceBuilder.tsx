@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createInvoiceAction } from '@/lib/actions/invoices'
 
 interface FormItem {
@@ -18,6 +19,7 @@ export default function InvoiceBuilder({ clients }: { clients: any[] }) {
   const [clientId, setClientId] = useState('')
   const [irpf, setIrpf] = useState<0 | 15 | 7>(0)
   const [loading, setLoading] = useState(false)
+  const [limitReached, setLimitReached] = useState(false)
   const [items, setItems] = useState<FormItem[]>([
     { id: 'initial', description: '', quantity: 1, unit_price: 0, iva_rate: 21 }
   ])
@@ -48,10 +50,33 @@ export default function InvoiceBuilder({ clients }: { clients: any[] }) {
     setLoading(false)
 
     if (result.error) {
-      alert(result.error)
+      if ('limitReached' in result && result.limitReached) {
+        setLimitReached(true)
+      } else {
+        alert(result.error)
+      }
     } else {
       router.push('/dashboard')
     }
+  }
+
+  if (limitReached) {
+    return (
+      <div className="max-w-md bg-amber-50 border border-amber-200 rounded-xl p-8 text-center">
+        <p className="text-2xl mb-3">🔒</p>
+        <h2 className="font-semibold text-gray-800 mb-2">Límite mensual alcanzado</h2>
+        <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+          Has creado 3 facturas este mes con el plan Free.<br />
+          Actualiza a Pro para crear facturas ilimitadas.
+        </p>
+        <Link
+          href="/pricing"
+          className="inline-block bg-black text-white px-6 py-2.5 rounded-full text-sm font-semibold hover:bg-gray-800 transition-colors"
+        >
+          Ver planes →
+        </Link>
+      </div>
+    )
   }
 
   return (

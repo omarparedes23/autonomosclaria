@@ -14,7 +14,19 @@ export default async function InvoiceDetailPage(props: { params: Promise<{ id: s
       <div className="flex justify-between items-center mb-8">
         <div>
           <Link href="/dashboard" className="text-gray-500 hover:text-black hover:underline mb-4 inline-block">&larr; Volver al Dashboard</Link>
-          <h1 className="text-3xl font-bold">Factura {invoice.invoice_number}</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold">
+              {(invoice as any).rectificative ? 'Factura Rectificativa' : 'Factura'} {invoice.invoice_number}
+            </h1>
+            {(invoice as any).rectificative && (
+              <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-semibold rounded-full">RECTIFICATIVA</span>
+            )}
+          </div>
+          {(invoice as any).rectificative && (invoice as any).original_invoice_number && (
+            <p className="text-sm text-gray-500 mt-1">
+              Rectifica: <Link href={`/dashboard/invoices/${(invoice as any).original_invoice_id}`} className="font-medium text-gray-700 hover:underline">{(invoice as any).original_invoice_number}</Link>
+            </p>
+          )}
         </div>
         <div className="flex space-x-4">
           <a href={`/api/pdf/${invoice.id}`} target="_blank" className="bg-white border border-gray-300 text-black px-4 py-2 rounded-lg font-medium hover:bg-gray-50 flex items-center">
@@ -33,8 +45,23 @@ export default async function InvoiceDetailPage(props: { params: Promise<{ id: s
               <DispatchButton invoiceId={invoice.id} customClass="bg-black text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-800" />
             </>
           )}
+          {!(invoice as any).rectificative && (
+            <Link
+              href={`/dashboard/invoices/${invoice.id}/rectificar`}
+              className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+            >
+              Emitir rectificativa
+            </Link>
+          )}
         </div>
       </div>
+
+      {(invoice as any).rectificative && (invoice as any).motivo_rectificacion && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl px-5 py-4">
+          <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide mb-1">Motivo de rectificación</p>
+          <p className="text-sm text-amber-900">{(invoice as any).motivo_rectificacion}</p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">

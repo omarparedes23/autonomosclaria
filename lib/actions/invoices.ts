@@ -25,6 +25,30 @@ export async function createInvoiceAction(payload: InvoicePayload) {
 
   if (!user) throw new Error('Unauthorized')
 
+  // Enforce free plan limit: max 3 invoices per calendar month
+  const { data: profile } = await supabase
+    .from('cl_users')
+    .select('plan')
+    .eq('id', user.id)
+    .single()
+
+  if (profile?.plan !== 'pro') {
+    const now = new Date()
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+    const { count } = await supabase
+      .from('cl_invoices')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('issue_date', monthStart)
+
+    if ((count ?? 0) >= 3) {
+      return {
+        error: 'Has alcanzado el límite de 3 facturas mensuales del plan Free. Actualiza a Pro para crear facturas ilimitadas.',
+        limitReached: true as const,
+      }
+    }
+  }
+
   // Generate atomic sequential invoice number
   const { data: invoiceNumber, error: rpcError } = await supabase.rpc(
     'generate_invoice_number',
@@ -110,7 +134,103 @@ export async function getInvoice(id: string) {
     .eq('id', id)
     .single()
 
+  if (!data) return null
+
+  // Fetch original invoice number for rectificativas
+  if (data.rectificative && data.original_invoice_id) {
+    const { data: orig } = await supabase
+      .from('cl_invoices')
+      .select('invoice_number')
+      .eq('id', data.original_invoice_id)
+      .single()
+    return { ...data, original_invoice_number: orig?.invoice_number ?? null }
+  }
+
   return data
+}
+
+export async function createRectificativeInvoice(
+  originalId: string,
+  payload: {
+    motivo: string
+    items: InvoiceLineItem[]
+    apply_irpf: 0 | 7 | 15
+  }
+) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return { error: 'Unauthorized' }
+
+  const { data: original } = await supabase
+    .from('cl_invoices')
+    .select('id, invoice_number, client_id')
+    .eq('id', originalId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (!original) return { error: 'Factura original no encontrada' }
+
+  const year = new Date().getFullYear()
+  const { count } = await supabase
+    .from('cl_invoices')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('rectificative', true)
+    .gte('issue_date', `${year}-01-01`)
+    .lt('issue_date', `${year + 1}-01-01`)
+
+  const seq = (count ?? 0) + 1
+  const invoiceNumber = `R-${year}-${String(seq).padStart(3, '0')}`
+
+  let taxable_base_cents = 0
+  let iva_quota_cents = 0
+
+  const resolvedItems = payload.items.map((item) => {
+    const base = item.quantity * Math.round(item.unit_price_cents)
+    const iva = Math.round(base * (item.iva_rate / 100))
+    taxable_base_cents += base
+    iva_quota_cents += iva
+    return {
+      description: item.description,
+      quantity: item.quantity,
+      unit_price_cents: Math.round(item.unit_price_cents),
+      iva_rate: item.iva_rate,
+      total_cents: base + iva,
+    }
+  })
+
+  const irpf_retention_cents = Math.round(taxable_base_cents * (payload.apply_irpf / 100))
+  const total_cents = taxable_base_cents + iva_quota_cents - irpf_retention_cents
+
+  const { data: invoiceData, error: invoiceError } = await supabase
+    .from('cl_invoices')
+    .insert({
+      user_id: user.id,
+      client_id: original.client_id,
+      invoice_number: invoiceNumber,
+      status: 'pending',
+      taxable_base_cents,
+      iva_quota_cents,
+      irpf_retention_cents,
+      total_cents,
+      rectificative: true,
+      original_invoice_id: originalId,
+      motivo_rectificacion: payload.motivo,
+    })
+    .select('id')
+    .single()
+
+  if (invoiceError) return { error: invoiceError.message }
+
+  const { error: itemsError } = await supabase
+    .from('cl_invoice_items')
+    .insert(resolvedItems.map((i) => ({ ...i, invoice_id: invoiceData.id })))
+
+  if (itemsError) return { error: itemsError.message }
+
+  revalidatePath('/dashboard')
+  revalidatePath(`/dashboard/invoices/${originalId}`)
+  return { success: true, invoice_id: invoiceData.id, invoice_number: invoiceNumber }
 }
 
 export async function updateInvoiceStatus(id: string, status: 'pending' | 'paid') {

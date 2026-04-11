@@ -21,10 +21,28 @@ export const InvoicePDF = ({ invoice }: { invoice: any }) => (
           <Text style={{ fontSize: 10, marginTop: 4, color: '#555' }}>{invoice.cl_users?.fiscal_address || 'Sin Dirección'}</Text>
         </View>
         <View style={{ width: '50%', alignItems: 'flex-end' }}>
-          <Text style={[styles.header, { marginBottom: 5 }]}>Factura {invoice.invoice_number}</Text>
+          {invoice.rectificative ? (
+            <>
+              <Text style={[styles.header, { marginBottom: 5 }]}>FACTURA RECTIFICATIVA</Text>
+              <Text style={{ fontSize: 11, marginBottom: 3 }}>{invoice.invoice_number}</Text>
+            </>
+          ) : (
+            <Text style={[styles.header, { marginBottom: 5 }]}>Factura {invoice.invoice_number}</Text>
+          )}
           <Text style={{ fontSize: 10, color: '#555' }}>Fecha Emisión: {new Date(invoice.issue_date).toLocaleDateString('es-ES')}</Text>
         </View>
       </View>
+
+      {invoice.rectificative && (
+        <View style={{ backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', padding: 10, marginBottom: 20, borderRadius: 4 }}>
+          <Text style={{ fontSize: 10, fontWeight: 'bold', marginBottom: 3 }}>
+            Rectifica la factura: {invoice.original_invoice_number ?? invoice.original_invoice_id ?? '—'}
+          </Text>
+          {invoice.motivo_rectificacion && (
+            <Text style={{ fontSize: 9, color: '#555' }}>Motivo: {invoice.motivo_rectificacion}</Text>
+          )}
+        </View>
+      )}
       
       <View style={[styles.section, { marginBottom: 30 }]}>
         <Text style={styles.bold}>Facturado a:</Text>

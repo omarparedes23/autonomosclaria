@@ -181,7 +181,7 @@ export default function Home() {
                 ))}
               </ul>
               <Link
-                href="/register"
+                href="/pricing"
                 className="block text-center bg-black text-white py-2.5 rounded-full text-sm hover:bg-black/80 transition-colors"
               >
                 Empezar con Pro

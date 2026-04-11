@@ -111,9 +111,14 @@ export default async function DashboardPage(props: {
             {invoices?.map((inv) => (
               <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
                 <td className="px-6 py-4 font-medium">
-                  <Link href={`/dashboard/invoices/${inv.id}`} className="hover:underline">
-                    {inv.invoice_number}
-                  </Link>
+                  <div className="flex items-center gap-2">
+                    <Link href={`/dashboard/invoices/${inv.id}`} className="hover:underline">
+                      {inv.invoice_number}
+                    </Link>
+                    {(inv as any).rectificative && (
+                      <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded">R</span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-6 py-4">{inv.cl_clients?.name || 'Cliente Eliminado'}</td>
                 <td className="px-6 py-4">{new Date(inv.issue_date).toLocaleDateString('es-ES')}</td>
