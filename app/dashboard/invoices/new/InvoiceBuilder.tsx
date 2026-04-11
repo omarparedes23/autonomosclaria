@@ -9,7 +9,7 @@ interface FormItem {
   id: string;
   description: string;
   quantity: number;
-  unit_price: number; // For UI input (decimals)
+  unit_price: string; // raw string input, converted to cents on submit
   iva_rate: 21 | 10 | 4 | 0;
 }
 
@@ -21,10 +21,10 @@ export default function InvoiceBuilder({ clients }: { clients: any[] }) {
   const [loading, setLoading] = useState(false)
   const [limitReached, setLimitReached] = useState(false)
   const [items, setItems] = useState<FormItem[]>([
-    { id: 'initial', description: '', quantity: 1, unit_price: 0, iva_rate: 21 }
+    { id: 'initial', description: '', quantity: 1, unit_price: '', iva_rate: 21 }
   ])
 
-  const addLine = () => setItems([...items, { id: Date.now().toString(), description: '', quantity: 1, unit_price: 0, iva_rate: 21 }])
+  const addLine = () => setItems([...items, { id: Date.now().toString(), description: '', quantity: 1, unit_price: '', iva_rate: 21 }])
 
   const updateLine = (id: string, field: keyof FormItem, value: any) => {
     setItems(items.map((i) => (i.id === id ? { ...i, [field]: value } : i)))
@@ -34,6 +34,9 @@ export default function InvoiceBuilder({ clients }: { clients: any[] }) {
     e.preventDefault()
     if (!clientId) return alert('Por favor, selecciona un cliente.')
 
+    const invalidPrice = items.some(i => !(parseFloat(i.unit_price) > 0))
+    if (invalidPrice) return alert('El precio de cada línea debe ser mayor que 0.')
+
     setLoading(true)
     const payload = {
       client_id: clientId,
@@ -41,7 +44,7 @@ export default function InvoiceBuilder({ clients }: { clients: any[] }) {
       items: items.map(i => ({
         description: i.description,
         quantity: i.quantity,
-        unit_price_cents: Math.round(i.unit_price * 100), // convert input floats to strict cents
+        unit_price_cents: Math.round(parseFloat(i.unit_price) * 100),
         iva_rate: i.iva_rate
       }))
     }
@@ -102,7 +105,7 @@ export default function InvoiceBuilder({ clients }: { clients: any[] }) {
             <input type="text" required placeholder="Concepto/Descripción" className="w-1/3 border p-2 rounded" value={item.description} onChange={(e) => updateLine(item.id, 'description', e.target.value)} />
             <input type="number" required min="1" step="1" className="w-24 border p-2 rounded" value={item.quantity} onChange={(e) => updateLine(item.id, 'quantity', Number(e.target.value))} />
             <div className="flex items-center">
-              <input type="number" required min="0" step="0.01" className="w-32 border p-2 rounded" value={item.unit_price} onChange={(e) => updateLine(item.id, 'unit_price', Number(e.target.value))} />
+              <input type="number" required min="0.01" step="0.01" placeholder="0.00" className="w-32 border p-2 rounded" value={item.unit_price} onChange={(e) => updateLine(item.id, 'unit_price', e.target.value)} />
               <span className="ml-2">€</span>
             </div>
             <select className="border p-2 rounded" value={item.iva_rate} onChange={(e) => updateLine(item.id, 'iva_rate', Number(e.target.value))}>

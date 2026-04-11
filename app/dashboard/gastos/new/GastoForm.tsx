@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { createGasto } from '@/lib/actions/gastos'
-import { getDeducibleDefault } from '@/lib/utils/gastos'
 import Link from 'next/link'
 
 const CATEGORIAS = [
@@ -20,6 +19,24 @@ const CATEGORIAS = [
 ]
 
 const IVA_RATES = [21, 10, 4, 0]
+
+const DEDUCIBLE_DEFAULTS: Record<string, number> = {
+  oficina:      100,
+  software:     100,
+  hardware:     100,
+  telefono:      50,
+  transporte:   100,
+  dietas:        50,
+  formacion:    100,
+  publicidad:   100,
+  suministros:   50,
+  autonomo:     100,
+  otros:        100,
+}
+
+function getDeducibleDefault(categoria: string): number {
+  return DEDUCIBLE_DEFAULTS[categoria] ?? 100
+}
 
 function calcBase(importeTotal: number, ivaRate: number) {
   if (ivaRate === 0) return importeTotal
