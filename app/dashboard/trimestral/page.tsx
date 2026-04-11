@@ -73,12 +73,20 @@ export default async function TrimestralPage(props: {
             Ver historial
           </Link>
           {plan === 'pro' && invoices.length > 0 && (
-            <a
-              href={`/api/pdf/trimestral?quarter=${quarter}&year=${year}`}
-              className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
-            >
-              Descargar PDF
-            </a>
+            <>
+              <a
+                href={`/api/pdf/trimestral?quarter=${quarter}&year=${year}`}
+                className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+              >
+                Descargar PDF
+              </a>
+              <a
+                href={`/api/pdf/modelo303?quarter=${quarter}&year=${year}`}
+                className="bg-black text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+              >
+                Descargar Modelo 303 (orientativo)
+              </a>
+            </>
           )}
         </div>
       </div>
@@ -87,7 +95,7 @@ export default async function TrimestralPage(props: {
       {plan !== 'pro' && (
         <div className="mb-6 flex items-center justify-between border border-amber-200 bg-amber-50 rounded-xl px-5 py-3.5 gap-4">
           <p className="text-sm text-amber-800">
-            <span className="font-semibold">Plan Pro</span> — Descarga el resumen trimestral en PDF para tu Modelo 303.
+            <span className="font-semibold">Plan Pro</span> — Descarga el resumen trimestral y el Modelo 303 orientativo en PDF.
           </p>
           <Link
             href="/pricing"

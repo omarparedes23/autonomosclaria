@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(PGPASSWORD='40223237@Lima' psql:*)"
+      "Bash(PGPASSWORD='40223237@Lima' psql:*)",
+      "Bash(psql:*)"
     ]
   }
 }

@@ -13,6 +13,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <Link href="/dashboard" className="px-4 py-3 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors">Dashboard</Link>
           <Link href="/dashboard/clients" className="px-4 py-3 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors">Clientes</Link>
           <Link href="/dashboard/services" className="px-4 py-3 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors">Servicios</Link>
+          <Link href="/dashboard/gastos" className="px-4 py-3 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors">Gastos</Link>
           <Link href="/dashboard/trimestral" className="px-4 py-3 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors">Trimestral</Link>
           <Link href="/dashboard/billing" className="px-4 py-3 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors">Facturación</Link>
           <Link href="/dashboard/profile" className="px-4 py-3 text-gray-700 font-medium rounded-lg hover:bg-gray-100 transition-colors">Mi Perfil</Link>

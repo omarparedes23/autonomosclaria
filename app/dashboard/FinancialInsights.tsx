@@ -1,4 +1,5 @@
 import { getYearInvoices } from '@/lib/actions/invoices'
+import { getGastos } from '@/lib/actions/gastos'
 
 // ─── Pure calculation helpers ────────────────────────────────────────────────
 
@@ -77,7 +78,10 @@ export default async function FinancialInsights() {
   const currentYear = now.getFullYear()
   const qi = getQuarterInfo(now)
 
-  const yearInvoices = await getYearInvoices(currentYear)
+  const [yearInvoices, quarterGastos] = await Promise.all([
+    getYearInvoices(currentYear),
+    getGastos(qi.label, currentYear),
+  ])
 
   // Quarterly IVA — both pending and paid count
   const quarterInvoices = yearInvoices.filter(inv => {
@@ -86,6 +90,11 @@ export default async function FinancialInsights() {
   })
   const quarterIvaCents = quarterInvoices.reduce((acc, inv) => acc + inv.iva_quota_cents, 0)
   const quarterIvaEur = quarterIvaCents / 100
+
+  // Quarterly gastos
+  const quarterIvaSoportadoCents = quarterGastos.reduce((acc, g) => acc + Math.round(g.iva_soportado_cents * g.deducible_percent / 100), 0)
+  const quarterBaseDeducibleCents = quarterGastos.reduce((acc, g) => acc + Math.round(g.base_imponible_cents * g.deducible_percent / 100), 0)
+  const netIvaCents = quarterIvaCents - quarterIvaSoportadoCents
 
   // Annual base for IRPF
   const annualBaseCents = yearInvoices.reduce((acc, inv) => acc + inv.taxable_base_cents, 0)
@@ -105,13 +114,13 @@ export default async function FinancialInsights() {
           <p className="text-sm font-medium">
             Declaración trimestral en{' '}
             <span className="font-bold">{qi.daysLeft} {qi.daysLeft === 1 ? 'día' : 'días'}</span>
-            {' '}— IVA a pagar:{' '}
-            <span className="font-bold">{formatEur(quarterIvaEur)}</span>
+            {' '}— IVA neto a pagar:{' '}
+            <span className="font-bold">{formatEur(netIvaCents / 100)}</span>
           </p>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Quarterly IVA Simulator */}
         <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
@@ -122,8 +131,19 @@ export default async function FinancialInsights() {
           </div>
 
           <div>
-            <p className="text-2xl font-bold text-gray-900">{formatEur(quarterIvaEur)}</p>
-            <p className="text-sm text-gray-500 mt-0.5">de IVA acumulado este trimestre</p>
+            <p className="text-2xl font-bold text-gray-900">{formatEur(netIvaCents / 100)}</p>
+            <p className="text-sm text-gray-500 mt-0.5">IVA neto a pagar (repercutido – soportado)</p>
+          </div>
+
+          <div className="text-xs space-y-0.5">
+            <div className="flex justify-between text-gray-500">
+              <span>IVA repercutido</span>
+              <span className="font-medium text-gray-700">{formatEur(quarterIvaEur)}</span>
+            </div>
+            <div className="flex justify-between text-gray-500">
+              <span>IVA soportado deducible</span>
+              <span className="font-medium text-green-700">–{formatEur(quarterIvaSoportadoCents / 100)}</span>
+            </div>
           </div>
 
           {/* Progress bar */}
@@ -143,9 +163,35 @@ export default async function FinancialInsights() {
               />
             </div>
           </div>
+        </div>
+
+        {/* Gastos Deducibles */}
+        <div className="bg-white border border-gray-100 rounded-xl p-6 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900">Gastos Deducibles</h3>
+            <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+              {qi.label} {currentYear}
+            </span>
+          </div>
+
+          <div>
+            <p className="text-2xl font-bold text-gray-900">{formatEur(quarterBaseDeducibleCents / 100)}</p>
+            <p className="text-sm text-gray-500 mt-0.5">base deducible este trimestre</p>
+          </div>
+
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-500">IVA soportado</span>
+              <span className="font-semibold">{formatEur(quarterIvaSoportadoCents / 100)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Nº gastos registrados</span>
+              <span className="font-semibold">{quarterGastos.length}</span>
+            </div>
+          </div>
 
           <p className="text-xs text-gray-400">
-            Incluye facturas pendientes y pagadas del trimestre.
+            Solo la parte deducible según categoría.
           </p>
         </div>
 
