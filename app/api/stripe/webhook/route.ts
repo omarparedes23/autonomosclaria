@@ -35,7 +35,10 @@ export async function POST(request: Request) {
         if (!userId || !subscriptionId) break
 
         const subscription = await stripe.subscriptions.retrieve(subscriptionId)
-        const expiresAt = new Date(subscription.current_period_end * 1000).toISOString()
+        // In Stripe API ≥ 2024-09-30, current_period_end moved to SubscriptionItem
+        const subAny = subscription as any
+        const periodEnd: number = subAny.current_period_end ?? subAny.items?.data?.[0]?.current_period_end ?? 0
+        const expiresAt = new Date(periodEnd * 1000).toISOString()
 
         await db.from('cl_users').update({
           plan: 'pro',
@@ -50,7 +53,9 @@ export async function POST(request: Request) {
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription
         const customerId = subscription.customer as string
-        const expiresAt = new Date(subscription.current_period_end * 1000).toISOString()
+        const subAny = subscription as any
+        const periodEnd: number = subAny.current_period_end ?? subAny.items?.data?.[0]?.current_period_end ?? 0
+        const expiresAt = new Date(periodEnd * 1000).toISOString()
         const isActive = subscription.status === 'active' || subscription.status === 'trialing'
 
         await db.from('cl_users').update({
